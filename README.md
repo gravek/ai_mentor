@@ -2,7 +2,7 @@
 
 AI-Ментор — это образовательный чат-бот для специалистов Data Science уровня middle+, изучающих фреймворки LangChain и LlamaIndex. Он реализует RAG (Retrieval-Augmented Generation) для персонализированного обучения, включая лекции, упражнения и адаптивный фидбек. 
 
-Проект включает учебник в формате Markdown, интегрированный как база знаний, и веб-интерфейс на Streamlit, доступный локально или через облако (Streamlit Community Cloud).
+Проект включает учебник в формате Markdown, интегрированный как база знаний, и веб-интерфейс на Streamlit, доступный локально или через облако ([Streamlit Community Cloud](https://jszk29kxkwj2gmcfnpyquk.streamlit.app/)).
 
 ## Особенности
 - **Персонализированное обучение**: адаптация под уровень студента (junior/middle/senior) через JSON-профили (`students.json`).
