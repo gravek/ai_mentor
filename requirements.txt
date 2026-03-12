@@ -19,5 +19,4 @@ apache-airflow
 streamlit
 transformers
 unstructured[md]
-
 hf_xet
