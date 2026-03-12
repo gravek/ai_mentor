@@ -12,6 +12,9 @@ from langchain_openai import ChatOpenAI
 import hashlib  # Для хэширования пароля (опционально, здесь используем plaintext для простоты)
 import cProfile
 
+from langchain_community.document_loaders import TextLoader
+from langchain_text_splitters import MarkdownHeaderTextSplitter
+
 # Настройка API-ключа OpenAI
 if "OPENAI_API_KEY" not in os.environ or not os.environ["OPENAI_API_KEY"].strip():
     api_key = st.text_input("Введите ваш API-ключ OpenAI:", type="password")
@@ -82,15 +85,44 @@ def get_exercise_solutions(chapter_title):
 
 
 
-# Инициализация (проверено на langchain==0.3.2)
+# Инициализация хранилища
 @st.cache_resource
 def load_vectorstore():
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    loader = DirectoryLoader('knowledge_base/', glob="**/*.md")
-    docs = loader.load()
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    splits = splitter.split_documents(docs)
-    return FAISS.from_documents(splits, embeddings)
+    
+    # 1. Собираем все .md файлы вручную
+    md_files = glob.glob("knowledge_base/**/*.md", recursive=True)
+    
+    docs = []
+    for file_path in md_files:
+        loader = TextLoader(file_path, encoding="utf-8")
+        raw_docs = loader.load()
+        
+        # 2. Разделяем по заголовкам (очень полезно для учебника!)
+        headers_to_split_on = [
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+        ]
+        markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+        
+        for doc in raw_docs:
+            split_docs = markdown_splitter.split_text(doc.page_content)
+            # Переносим метаданные (источник файла)
+            for chunk in split_docs:
+                chunk.metadata["source"] = file_path
+                docs.append(chunk)
+    
+    # 3. Дополнительно можно разбить крупные куски
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len,
+    )
+    final_splits = text_splitter.split_documents(docs)
+    
+    return FAISS.from_documents(final_splits, embeddings)
+    
 vectorstore = load_vectorstore()
 
 # Инициализация LLM
@@ -432,4 +464,5 @@ else:
                 st.session_state.ex_messages = []
                 save_students(students_data)
                 st.success("История упражнений очищена!")
+
                 st.rerun()
